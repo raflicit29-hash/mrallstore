@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080808">
+<meta name="description" content="MR ALL IN — All Rental Solutions">
+<title>MR ALL IN — Tech Marketplace</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="topline">⚡ MR ALL IN — HARDWARE • RENTAL • SOLUTION <span>Ready Stock • Fast Response</span></div>
+<header class="header">
+  <a class="logo" href="./"><strong>MR</strong><div>ALL IN<small>ALL RENTAL SOLUTIONS</small></div></a>
+  <div class="searchbox"><span>⌕</span><input id="search" placeholder="Cari VGA, SSD, Ryzen, RAM..." autocomplete="off"></div>
+  <nav><a href="#kategori">Kategori</a><a href="#promo">Promo</a><a href="admin.html">⚙ Admin</a></nav>
+</header>
+<div class="catbar"><div id="catBar"></div></div>
+
+<main>
+<section class="hero">
+  <div class="hero-copy">
+    <div class="kicker">MR ALL IN <i>•</i> TECH MARKETPLACE</div>
+    <h1>Upgrade.<br><em>Tanpa ragu.</em></h1>
+    <p>Hardware pilihan untuk gaming, kerja, editing, server, dan kebutuhan rental. Harga jelas, stok nyata.</p>
+    <div class="hero-actions"><a class="btn gold" href="#produk">Belanja Sekarang <b>→</b></a><a class="btn dark" id="waHero" target="_blank">WhatsApp ↗</a></div>
+    <div class="trust"><span>✓ Stok terupdate</span><span>✓ Cek kondisi</span><span>✓ Konsultasi</span></div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="gridlines"></div><div class="ring r1"></div><div class="ring r2"></div><div class="core"><b>MR</b><small>ALL IN</small></div>
+    <div class="spec s1">PERFORMANCE<br><b>READY</b></div><div class="spec s2">HARDWARE<br><b>SELECTED</b></div>
+  </div>
+</section>
+
+<section id="promo" class="flash section">
+  <div class="section-title"><div><small>LIMITED TIME</small><h2>🔥 Flash Sale</h2><p>Harga spesial untuk waktu terbatas.</p></div><div class="timer"><label>BERAKHIR DALAM</label><strong id="countdown">--:--:--</strong></div></div>
+  <div id="flash" class="product-grid"></div>
+</section>
+
+<section id="kategori" class="section">
+  <div class="section-title"><div><small>EXPLORE HARDWARE</small><h2>Kategori Pilihan</h2></div></div>
+  <div id="categoryCards" class="category-grid"></div>
+</section>
+
+<section id="produk" class="section">
+  <div class="section-title"><div><small>MR ALL IN STORE</small><h2>Produk Terbaru</h2></div><span id="resultCount" class="muted"></span></div>
+  <div id="products" class="product-grid"></div>
+</section>
+</main>
+
+<footer><div class="footer-brand">MR ALL IN</div><p>All Rental Solutions • Hardware • Gaming • Workstation</p><small>© MR ALL IN</small></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/store.js"></script>
+</body>
+</html>
