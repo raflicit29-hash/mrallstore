@@ -1,0 +1,1 @@
+MR ALL IN V5 Foundation. Extract all files and upload the folder structure to the GitHub repository. Supabase data remains unchanged.
