@@ -1,1 +1,0 @@
-MR ALL IN Store V3 - Admin upgrade. Replace index.html and admin.html in GitHub. Admin upload now auto-compresses images to WebP max 1200px and has improved mobile UI/validation. Supabase configuration remains unchanged.
