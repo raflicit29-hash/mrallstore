@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MR ALL IN — Admin</title><link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="admin-page">
+<header class="header"><a class="logo" href="index.html"><strong>MR</strong><div>ALL IN<small>ADMIN CONTROL</small></div></a><a class="btn dark" href="index.html">← Toko</a></header>
+<main class="admin-wrap">
+<section class="admin-hero"><div class="kicker">CONTROL CENTER</div><h1>Kelola <em>MR ALL IN.</em></h1><p>Panel admin untuk produk, stok dan promo.</p><div id="authState"></div></section>
+<section class="stats"><div><b id="pCount">0</b><span>Total Produk</span></div><div><b id="sCount">0</b><span>Total Stok</span></div><div><b id="fCount">0</b><span>Flash Sale</span></div></section>
+<section class="panel"><div class="panel-head"><div><small>INVENTORY</small><h2>Tambah Produk</h2></div></div>
+<form id="form" class="formgrid">
+<input id="name" required placeholder="Nama produk"><input id="price" required type="number" min="0" placeholder="Harga normal">
+<input id="promo" type="number" min="0" placeholder="Harga promo (opsional)"><input id="stock" required type="number" min="0" placeholder="Stok">
+<select id="category" required></select><input id="image" type="url" placeholder="URL gambar (opsional)">
+<label class="check"><input id="flash" type="checkbox"> Aktifkan Flash Sale</label><div class="row"><input id="start" type="datetime-local"><input id="end" type="datetime-local"></div>
+<button class="btn gold" type="submit">+ Simpan Produk</button>
+</form></section>
+<section class="panel"><div class="panel-head"><div><small>INVENTORY</small><h2>Produk</h2></div></div><div id="list"></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase.js"></script><script src="assets/js/admin.js"></script>
+</body></html>
