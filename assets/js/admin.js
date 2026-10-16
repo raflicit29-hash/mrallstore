@@ -1,6 +1,5 @@
 
 let editingId = null;
-
 const $ = s => document.querySelector(s);
 
 const fmtAdmin = n =>
@@ -19,11 +18,7 @@ const statusLabels = {
 };
 
 async function init() {
-  const {
-    data: { session },
-    error
-  } = await sb.auth.getSession();
-
+  const { data: { session }, error } = await sb.auth.getSession();
   const box = $("#authState");
 
   if (error) {
@@ -36,37 +31,47 @@ async function init() {
       <div class="loginbox">
         <p>Login admin untuk mengelola toko.</p>
         <input id="loginEmail" type="email"
-          placeholder="Email admin" autocomplete="email">
-        <button class="btn gold" id="loginBtn" type="button">
+          placeholder="Email admin" autocomplete="username">
+        <input id="loginPassword" type="password"
+          placeholder="Password" autocomplete="current-password">
+
+        <button class="btn gold" id="passwordLoginBtn" type="button">
+          Login dengan Password
+        </button>
+
+        <button class="btn dark" id="loginBtn" type="button">
           Kirim Magic Link
         </button>
+
         <button class="btn dark" id="resetBtn" type="button">
           Lupa Password?
         </button>
+
         <small id="loginMsg" role="status"></small>
       </div>`;
 
+    $("#passwordLoginBtn").onclick = loginWithPassword;
     $("#loginBtn").onclick = login;
     $("#resetBtn").onclick = resetPassword;
     return;
   }
 
-  if (
-    (session.user.email || "").toLowerCase() !==
-    "raflicit29@gmail.com"
-  ) {
-    box.innerHTML =
-      '<p class="danger">Akses ditolak. Akun ini bukan admin.</p>';
+  if ((session.user.email || "").toLowerCase() !==
+      "raflicit29@gmail.com") {
+    box.innerHTML = `
+      <p class="danger">Akses ditolak. Akun ini bukan admin.</p>
+      <button class="btn dark" id="logoutBtn">Keluar</button>`;
+
+    $("#logoutBtn").onclick = async () => {
+      await sb.auth.signOut();
+      location.reload();
+    };
     return;
   }
 
   box.innerHTML = `
-    <span class="logged">
-      ✓ Login: ${esc(session.user.email)}
-    </span>
-    <button class="btn dark smallbtn" id="logoutBtn">
-      Keluar
-    </button>`;
+    <span class="logged">✓ Login: ${esc(session.user.email)}</span>
+    <button class="btn dark smallbtn" id="logoutBtn">Keluar</button>`;
 
   $("#logoutBtn").onclick = async () => {
     await sb.auth.signOut();
@@ -77,12 +82,51 @@ async function init() {
   await loadProducts();
 }
 
+async function loginWithPassword() {
+  const email = $("#loginEmail").value.trim().toLowerCase();
+  const password = $("#loginPassword").value;
+  const msg = $("#loginMsg");
+  const btn = $("#passwordLoginBtn");
+
+  if (email !== "raflicit29@gmail.com") {
+    msg.textContent = "Email admin tidak sesuai.";
+    return;
+  }
+
+  if (!password) {
+    msg.textContent = "Masukkan password terlebih dahulu.";
+    $("#loginPassword").focus();
+    return;
+  }
+
+  btn.disabled = true;
+  msg.textContent = "Memeriksa email dan password...";
+
+  try {
+    const { error } = await sb.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      msg.textContent = "Login gagal: " + error.message;
+      return;
+    }
+
+    location.reload();
+  } catch (err) {
+    msg.textContent = "Terjadi kesalahan: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function login() {
-  const e = $("#loginEmail").value.trim().toLowerCase();
+  const email = $("#loginEmail").value.trim().toLowerCase();
   const msg = $("#loginMsg");
   const btn = $("#loginBtn");
 
-  if (e !== "raflicit29@gmail.com") {
+  if (email !== "raflicit29@gmail.com") {
     msg.textContent = "Email admin tidak sesuai.";
     return;
   }
@@ -92,17 +136,16 @@ async function login() {
 
   try {
     const { error } = await sb.auth.signInWithOtp({
-      email: e,
+      email,
       options: {
-        emailRedirectTo:
-          new URL("admin.html", location.href).href
+        emailRedirectTo: new URL("admin.html", location.href).href,
+        shouldCreateUser: false
       }
     });
 
     msg.textContent = error
       ? "Gagal: " + error.message
       : "Magic Link dikirim. Periksa Inbox/Spam email.";
-
   } catch (err) {
     msg.textContent = "Terjadi kesalahan: " + err.message;
   } finally {
@@ -111,11 +154,11 @@ async function login() {
 }
 
 async function resetPassword() {
-  const e = $("#loginEmail").value.trim().toLowerCase();
+  const email = $("#loginEmail").value.trim().toLowerCase();
   const msg = $("#loginMsg");
   const btn = $("#resetBtn");
 
-  if (e !== "raflicit29@gmail.com") {
+  if (email !== "raflicit29@gmail.com") {
     msg.textContent = "Masukkan email admin yang benar.";
     $("#loginEmail").focus();
     return;
@@ -128,14 +171,13 @@ async function resetPassword() {
     const resetUrl =
       new URL("reset-password.html", location.href).href;
 
-    const { error } = await sb.auth.resetPasswordForEmail(e, {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: resetUrl
     });
 
     msg.textContent = error
       ? "Gagal mengirim reset: " + error.message
       : "Email reset dikirim. Buka email terbaru, lalu klik tautannya.";
-
   } catch (err) {
     msg.textContent = "Terjadi kesalahan: " + err.message;
   } finally {
@@ -144,8 +186,7 @@ async function resetPassword() {
 }
 
 async function loadCats() {
-  const { data, error } = await sb
-    .from("categories")
+  const { data, error } = await sb.from("categories")
     .select("id,name")
     .eq("active", true)
     .order("sort_order");
@@ -161,8 +202,7 @@ async function loadCats() {
 }
 
 async function loadProducts() {
-  const { data, error } = await sb
-    .from("products")
+  const { data, error } = await sb.from("products")
     .select("*,categories(name)")
     .order("created_at", { ascending: false });
 
@@ -172,16 +212,16 @@ async function loadProducts() {
     return;
   }
 
-  const ps = data || [];
+  const products = data || [];
 
-  $("#pCount").textContent = ps.length;
+  $("#pCount").textContent = products.length;
   $("#sCount").textContent =
-    ps.reduce((a, p) => a + Number(p.stock || 0), 0);
+    products.reduce((sum, p) => sum + Number(p.stock || 0), 0);
   $("#fCount").textContent =
-    ps.filter(p => p.flash_sale).length;
+    products.filter(p => p.flash_sale).length;
 
-  $("#list").innerHTML = ps.length
-    ? ps.map(p => `
+  $("#list").innerHTML = products.length
+    ? products.map(p => `
       <div class="admin-item">
         <div>
           <b>${esc(p.name)}</b>
@@ -226,8 +266,7 @@ function resetForm() {
 }
 
 async function editProduct(id) {
-  const { data, error } = await sb
-    .from("products")
+  const { data, error } = await sb.from("products")
     .select("*")
     .eq("id", id)
     .single();
@@ -243,12 +282,8 @@ async function editProduct(id) {
   $("#cancelBtn").style.display = "inline-flex";
 
   ["name", "price", "promo", "stock", "image"].forEach(k => {
-    const field = {
-      promo: "old_price",
-      image: "image_url"
-    }[k] || k;
-
-    $("#"+k).value = data[field] ?? "";
+    const field = ({ promo: "old_price", image: "image_url" })[k] || k;
+    $("#" + k).value = data[field] ?? "";
   });
 
   $("#category").value = data.category_id;
@@ -272,8 +307,7 @@ async function deleteProduct(id) {
     return;
   }
 
-  const { error } = await sb
-    .from("products")
+  const { error } = await sb.from("products")
     .delete()
     .eq("id", id);
 
@@ -296,7 +330,7 @@ $("#form").addEventListener("submit", async e => {
     ? new Date($("#end").value).toISOString()
     : null;
 
-  const x = {
+  const product = {
     name: $("#name").value.trim(),
     price: +$("#price").value,
     old_price: +$("#promo").value || null,
@@ -310,23 +344,21 @@ $("#form").addEventListener("submit", async e => {
     product_status: $("#status").value
   };
 
-  if (
-    x.flash_sale &&
-    (!start || !end || new Date(end) <= new Date(start))
-  ) {
+  if (product.flash_sale &&
+      (!start || !end || new Date(end) <= new Date(start))) {
     alert("Tanggal Flash Sale belum benar.");
     return;
   }
 
-  if (x.stock <= 0 && x.product_status === "ready") {
-    x.product_status = "sold";
+  if (product.stock <= 0 && product.product_status === "ready") {
+    product.product_status = "sold";
   }
 
-  const q = editingId
-    ? sb.from("products").update(x).eq("id", editingId)
-    : sb.from("products").insert(x);
+  const query = editingId
+    ? sb.from("products").update(product).eq("id", editingId)
+    : sb.from("products").insert(product);
 
-  const { error } = await q;
+  const { error } = await query;
 
   if (error) {
     alert("Gagal menyimpan produk: " + error.message);
