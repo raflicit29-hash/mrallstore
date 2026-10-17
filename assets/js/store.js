@@ -14,7 +14,7 @@ function mergePublishedInventory(products,published){
     if(!variants.has(key))variants.set(key,{...row,familyKey:normalizeName(row.match_key)});
   });
   const inventory=[...variants.values()];
-  const used=new Set(), suppressed=new Set();
+  const used=new Set();
   const merged=[];
   (products||[]).forEach(p=>{
     const nameKey=normalizeName(p.name);
@@ -26,11 +26,11 @@ function mergePublishedInventory(products,published){
     if(candidates.length===1){
       const inv=candidates[0];
       used.add(String(inv.owner_id||"")+"::"+String(inv.source_key));
-      merged.push({...p,price:Number(inv.price)||0,stock:Math.max(0,Number(inv.stock)||0),product_status:Number(inv.stock)>0?"ready":"sold",category:inv.category||p.categories?.name||"Hardware",image_url:p.image_url||inv.image_url||null,business_sync:true});
+      merged.push({...p,price:Number(inv.price)||0,stock:Math.max(0,Number(inv.stock)||0),product_status:Number(inv.stock)>0?"ready":"sold",category:inv.category||p.categories?.name||"Hardware",image_url:p.image_url||inv.image_url||null,old_price:null,flash_sale:false,promo_start:null,promo_end:null,business_sync:true});
     }else if(candidates.length>1){
       // The published stock has distinct variants (e.g. different HDD health).
       // Hide the ambiguous legacy aggregate so variants are not double-counted.
-      suppressed.add(p.id);
+      // No legacy aggregate is emitted here; the distinct published variants will be appended below.
     }else{
       merged.push({...p,category:p.categories?.name||"Hardware"});
     }
