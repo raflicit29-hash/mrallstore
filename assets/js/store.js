@@ -7,41 +7,38 @@ function card(p){const sale=flash(p), price=Number(p.price)||0, old=sale?Number(
 return '<article class="card"><a class="product-pic" href="#produk"><div class="shine"></div>'+(p.image_url?'<img loading="lazy" src="'+p.image_url+'" alt="'+p.name+'">':'<div class="noimg">MR<br><b>ALL IN</b></div>')+(sale?'<span class="sale">-'+d+'%</span>':'')+'<span class="stockbadge status-'+si[1]+'">'+si[0]+'</span></a><div class="cardbody"><small>'+(p.category||"Hardware")+'</small><h3>'+p.name+'</h3><div class="price">'+fmt(price)+'</div>'+(sale?'<del>'+fmt(old)+'</del>':'')+'<div class="stockline"><span>'+(Number(p.stock)>0?'● Stok tersedia':'● Stok habis')+'</span>'+(Number(p.stock)>0?'<b>'+p.stock+' unit</b>':'')+'</div><a class="buy" target="_blank" href="'+wa(p,price)+'">Pesan via WhatsApp <b>→</b></a></div></article>'}
 function normalizeName(value){return String(value||"").normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," ")}
 function mergePublishedInventory(products,published){
-  const groups=new Map();
+  const variants=new Map();
   (published||[]).forEach(row=>{
-    const key=normalizeName(row.match_key||row.name);
-    if(!key)return;
-    if(!groups.has(key))groups.set(key,[]);
-    groups.get(key).push(row);
+    const key=String(row.owner_id||"")+"::"+String(row.source_key||"");
+    if(!row.source_key||!row.match_key)return;
+    if(!variants.has(key))variants.set(key,{...row,familyKey:normalizeName(row.match_key)});
   });
-  const used=new Set();
-  const merged=(products||[]).map(p=>{
+  const inventory=[...variants.values()];
+  const used=new Set(), suppressed=new Set();
+  const merged=[];
+  (products||[]).forEach(p=>{
     const nameKey=normalizeName(p.name);
-    const nameTokens=new Set(nameKey.split(" ").filter(Boolean));
-    const candidates=[];
-    for(const key of groups.keys()){
-      if(used.has(key))continue;
-      const keyTokens=key.split(" ").filter(Boolean);
-      if(key===nameKey || (keyTokens.length>1 && keyTokens.every(token=>nameTokens.has(token))))candidates.push(key);
+    const tokens=new Set(nameKey.split(" ").filter(Boolean));
+    const candidates=inventory.filter(inv=>{
+      const familyTokens=inv.familyKey.split(" ").filter(Boolean);
+      return familyTokens.length>1&&familyTokens.every(token=>tokens.has(token));
+    });
+    if(candidates.length===1){
+      const inv=candidates[0];
+      used.add(String(inv.owner_id||"")+"::"+String(inv.source_key));
+      merged.push({...p,price:Number(inv.price)||0,stock:Math.max(0,Number(inv.stock)||0),product_status:Number(inv.stock)>0?"ready":"sold",category:inv.category||p.categories?.name||"Hardware",image_url:p.image_url||inv.image_url||null,business_sync:true});
+    }else if(candidates.length>1){
+      // The published stock has distinct variants (e.g. different HDD health).
+      // Hide the ambiguous legacy aggregate so variants are not double-counted.
+      suppressed.add(p.id);
+    }else{
+      merged.push({...p,category:p.categories?.name||"Hardware"});
     }
-    // Never attach a generic legacy listing to an arbitrary SKU when the match is ambiguous.
-    const matchKey=candidates.length===1?candidates[0]:null;
-    const base={...p,category:p.categories?.name||"Hardware"};
-    if(!matchKey)return base;
-    used.add(matchKey);
-    const rows=groups.get(matchKey);
-    const freshest=rows.slice().sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0))[0];
-    const prices=rows.map(r=>Number(r.price)||0).filter(n=>n>0).sort((a,b)=>a-b);
-    const stock=rows.reduce((sum,r)=>sum+Math.max(0,Number(r.stock)||0),0);
-    const inv={...freshest,price:prices.length?prices[0]:Number(freshest.price)||0,stock,product_status:stock>0?"ready":"sold"};
-    return {...base,price:inv.price,stock:inv.stock,product_status:inv.product_status,category:inv.category||base.category,image_url:base.image_url||inv.image_url||null,business_sync:true};
   });
-  groups.forEach((rows,key)=>{
+  inventory.forEach(inv=>{
+    const key=String(inv.owner_id||"")+"::"+String(inv.source_key);
     if(used.has(key))return;
-    const freshest=rows.slice().sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0))[0];
-    const prices=rows.map(r=>Number(r.price)||0).filter(n=>n>0).sort((a,b)=>a-b);
-    const stock=rows.reduce((sum,r)=>sum+Math.max(0,Number(r.stock)||0),0);
-    merged.push({id:"business-sync-"+key,name:freshest.name,price:prices.length?prices[0]:Number(freshest.price)||0,old_price:null,stock,category_id:null,category:freshest.category||"Hardware",image_url:freshest.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:stock>0?"ready":"sold",business_sync:true,created_at:freshest.updated_at||""});
+    merged.push({id:"business-sync-"+key,name:inv.name,price:Number(inv.price)||0,old_price:null,stock:Math.max(0,Number(inv.stock)||0),category_id:null,category:inv.category||"Hardware",image_url:inv.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:Number(inv.stock)>0?"ready":"sold",business_sync:true,created_at:inv.updated_at||""});
   });
   return merged;
 }
