@@ -13,6 +13,6 @@ Data produk/kategori lama tetap tersimpan. V7 tidak menghapus data Supabase.
 3. Gunakan akun admin Store `raflicit29@gmail.com` yang sudah terdaftar di Supabase Auth untuk Cloud Business.
 4. Muat daftar stok, centang barang yang boleh terlihat di website, lalu sinkronkan.
 5. Setelah publikasi awal, perubahan harga/stok pada perangkat Business yang sama akan disinkron otomatis setelah data disimpan. Store yang sedang terbuka memuat ulang katalog sekitar setiap 30 detik.
-6. Barang baru/varian yang belum dipilih harus dipublikasikan manual. Jika sedang offline, data Business tetap tersimpan lokal dan sinkron otomatis dicoba lagi ketika data disimpan setelah koneksi pulih.
+6. Barang baru/varian yang belum dipilih harus dipublikasikan manual. Jika sedang offline, data Business tetap tersimpan lokal. Sinkron dicoba kembali saat koneksi pulih atau aplikasi dibuka lagi; bila tetap gagal, gunakan sinkron manual saat online.
 
 Yang dikirim hanya nama, kategori, harga jual, stok, dan status. Data modal, supplier, profit, saldo, utang, konsumen, dan snapshot internal tidak dikirim. Sinkron stok memerlukan akun admin Store aktif di Cloud Business pada perangkat yang mengubah data.
