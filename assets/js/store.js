@@ -11,34 +11,38 @@ function mergePublishedInventory(products,published){
   (published||[]).forEach(row=>{
     const key=String(row.owner_id||"")+"::"+String(row.source_key||"");
     if(!row.source_key||!row.match_key)return;
-    if(!variants.has(key))variants.set(key,{...row,familyKey:normalizeName(row.match_key)});
+    if(!variants.has(key))variants.set(key,{...row,bridgeKey:key,familyKey:normalizeName(row.match_key)});
   });
   const inventory=[...variants.values()];
-  const used=new Set();
-  const merged=[];
-  (products||[]).forEach(p=>{
+  const names=(products||[]).map(p=>{
     const nameKey=normalizeName(p.name);
     const tokens=new Set(nameKey.split(" ").filter(Boolean));
     const candidates=inventory.filter(inv=>{
       const familyTokens=inv.familyKey.split(" ").filter(Boolean);
       return familyTokens.length>1&&familyTokens.every(token=>tokens.has(token));
     });
-    if(candidates.length===1){
-      const inv=candidates[0];
-      used.add(String(inv.owner_id||"")+"::"+String(inv.source_key));
-      merged.push({...p,price:Number(inv.price)||0,stock:Math.max(0,Number(inv.stock)||0),product_status:Number(inv.stock)>0?"ready":"sold",category:inv.category||p.categories?.name||"Hardware",image_url:p.image_url||inv.image_url||null,old_price:null,flash_sale:false,promo_start:null,promo_end:null,business_sync:true});
-    }else if(candidates.length>1){
-      // The published stock has distinct variants (e.g. different HDD health).
-      // Hide the ambiguous legacy aggregate so variants are not double-counted.
-      // No legacy aggregate is emitted here; the distinct published variants will be appended below.
-    }else{
-      merged.push({...p,category:p.categories?.name||"Hardware"});
+    return {p,candidates};
+  });
+  const legacyCounts=new Map();
+  names.forEach(item=>{
+    if(item.candidates.length===1){
+      const key=item.candidates[0].bridgeKey;
+      legacyCounts.set(key,(legacyCounts.get(key)||0)+1);
     }
   });
+  const used=new Set(),merged=[];
+  names.forEach(item=>{
+    const p=item.p,candidates=item.candidates;
+    if(candidates.length===0){merged.push({...p,category:p.categories?.name||"Hardware"});return}
+    if(candidates.length>1)return; // Replace an ambiguous legacy aggregate with the explicit variants below.
+    const inv=candidates[0];
+    if(legacyCounts.get(inv.bridgeKey)>1)return; // Avoid showing two legacy products backed by one stock group.
+    used.add(inv.bridgeKey);
+    merged.push({...p,price:Number(inv.price)||0,stock:Math.max(0,Number(inv.stock)||0),product_status:Number(inv.stock)>0?"ready":"sold",category:inv.category||p.categories?.name||"Hardware",image_url:p.image_url||inv.image_url||null,old_price:null,flash_sale:false,promo_start:null,promo_end:null,business_sync:true});
+  });
   inventory.forEach(inv=>{
-    const key=String(inv.owner_id||"")+"::"+String(inv.source_key);
-    if(used.has(key))return;
-    merged.push({id:"business-sync-"+key,name:inv.name,price:Number(inv.price)||0,old_price:null,stock:Math.max(0,Number(inv.stock)||0),category_id:null,category:inv.category||"Hardware",image_url:inv.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:Number(inv.stock)>0?"ready":"sold",business_sync:true,created_at:inv.updated_at||""});
+    if(used.has(inv.bridgeKey))return;
+    merged.push({id:"business-sync-"+inv.bridgeKey,name:inv.name,price:Number(inv.price)||0,old_price:null,stock:Math.max(0,Number(inv.stock)||0),category_id:null,category:inv.category||"Hardware",image_url:inv.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:Number(inv.stock)>0?"ready":"sold",business_sync:true,created_at:inv.updated_at||""});
   });
   return merged;
 }
