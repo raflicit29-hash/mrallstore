@@ -8,18 +8,41 @@ return '<article class="card"><a class="product-pic" href="#produk"><div class="
 function normalizeName(value){return String(value||"").normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," ")}
 function mergePublishedInventory(products,published){
   const groups=new Map();
-  (published||[]).forEach(row=>{const key=normalizeName(row.match_key||row.name);if(!key)return;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row)});
+  (published||[]).forEach(row=>{
+    const key=normalizeName(row.match_key||row.name);
+    if(!key)return;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(row);
+  });
   const used=new Set();
-  const syncedGroup=rows=>{const prices=rows.map(r=>Number(r.price)||0).filter(n=>n>0).sort((a,b)=>a-b);const stock=rows.reduce((sum,r)=>sum+Math.max(0,Number(r.stock)||0),0);return {...rows[0],price:prices.length?prices[0]:Number(rows[0].price)||0,stock,product_status:stock>0?"ready":"sold",active:true,business_sync:true}};
   const merged=(products||[]).map(p=>{
-    const nameKey=normalizeName(p.name);let matchKey=null;
-    for(const key of groups.keys()){if(used.has(key))continue;if(nameKey===key||(key.length>=6&&nameKey.includes(key))||(nameKey.length>=6&&key.includes(nameKey))){matchKey=key;break}}
+    const nameKey=normalizeName(p.name);
+    const nameTokens=new Set(nameKey.split(" ").filter(Boolean));
+    const candidates=[];
+    for(const key of groups.keys()){
+      if(used.has(key))continue;
+      const keyTokens=key.split(" ").filter(Boolean);
+      if(key===nameKey || (keyTokens.length>1 && keyTokens.every(token=>nameTokens.has(token))))candidates.push(key);
+    }
+    // Never attach a generic legacy listing to an arbitrary SKU when the match is ambiguous.
+    const matchKey=candidates.length===1?candidates[0]:null;
     const base={...p,category:p.categories?.name||"Hardware"};
     if(!matchKey)return base;
-    used.add(matchKey);const inv=syncedGroup(groups.get(matchKey));
-    return {...base,price:inv.price,stock:inv.stock,product_status:inv.product_status,image_url:base.image_url||inv.image_url||null,business_sync:true};
+    used.add(matchKey);
+    const rows=groups.get(matchKey);
+    const freshest=rows.slice().sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0))[0];
+    const prices=rows.map(r=>Number(r.price)||0).filter(n=>n>0).sort((a,b)=>a-b);
+    const stock=rows.reduce((sum,r)=>sum+Math.max(0,Number(r.stock)||0),0);
+    const inv={...freshest,price:prices.length?prices[0]:Number(freshest.price)||0,stock,product_status:stock>0?"ready":"sold"};
+    return {...base,price:inv.price,stock:inv.stock,product_status:inv.product_status,category:inv.category||base.category,image_url:base.image_url||inv.image_url||null,business_sync:true};
   });
-  groups.forEach((rows,key)=>{if(used.has(key))return;const inv=syncedGroup(rows);merged.push({id:"business-sync-"+key,name:inv.name,price:inv.price,old_price:null,stock:inv.stock,category_id:null,category:inv.category||"Hardware",image_url:inv.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:inv.product_status,business_sync:true,created_at:inv.updated_at||""})});
+  groups.forEach((rows,key)=>{
+    if(used.has(key))return;
+    const freshest=rows.slice().sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0))[0];
+    const prices=rows.map(r=>Number(r.price)||0).filter(n=>n>0).sort((a,b)=>a-b);
+    const stock=rows.reduce((sum,r)=>sum+Math.max(0,Number(r.stock)||0),0);
+    merged.push({id:"business-sync-"+key,name:freshest.name,price:prices.length?prices[0]:Number(freshest.price)||0,old_price:null,stock,category_id:null,category:freshest.category||"Hardware",image_url:freshest.image_url||null,flash_sale:false,promo_start:null,promo_end:null,active:true,product_status:stock>0?"ready":"sold",business_sync:true,created_at:freshest.updated_at||""});
+  });
   return merged;
 }
 async function load(){
