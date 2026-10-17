@@ -1,8 +1,18 @@
 # MR ALL IN V7
 
-Upgrade dari V6: status barang publik, edit/hapus produk, Magic Link admin, dan Flash Sale menggunakan schema existing (`price`, `old_price`, `promo_start`, `promo_end`).
+Upgrade dari V6: status barang publik, edit/hapus produk, Magic Link admin, dan Flash Sale memakai skema yang sudah ada (price, old_price, promo_start, promo_end).
 
-## WAJIB sekali di Supabase SQL Editor
+## Persiapan database
 Jalankan `v7_status.sql` sebelum memakai dropdown status.
 
 Data produk/kategori lama tetap tersimpan. V7 tidak menghapus data Supabase.
+
+## Sinkron stok Business → Store
+1. Jalankan `supabase/migrations/002_business_inventory_sync.sql` satu kali pada SQL Editor Supabase project yang sama.
+2. Di MR ALL IN Business, buka **Cloud → Publikasikan stok ke MR ALL IN Store**.
+3. Gunakan akun admin Store `raflicit29@gmail.com` yang sudah terdaftar di Supabase Auth untuk Cloud Business.
+4. Muat daftar stok, centang barang yang boleh terlihat di website, lalu sinkronkan.
+5. Setelah publikasi awal, perubahan harga/stok pada perangkat Business yang sama akan disinkron otomatis setelah data disimpan. Store yang sedang terbuka memuat ulang katalog sekitar setiap 30 detik.
+6. Barang baru/varian yang belum dipilih harus dipublikasikan manual. Jika sedang offline, data Business tetap tersimpan lokal. Sinkron dicoba kembali saat koneksi pulih atau aplikasi dibuka lagi; bila tetap gagal, gunakan sinkron manual saat online.
+
+Yang dikirim hanya nama, kategori, harga jual, stok, dan status. Data modal, supplier, profit, saldo, utang, konsumen, dan snapshot internal tidak dikirim. Sinkron stok memerlukan akun admin Store aktif di Cloud Business pada perangkat yang mengubah data.
